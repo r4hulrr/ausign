@@ -1,0 +1,11 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "RCH8011NP-221L")(type "KiCad")(uri "${KIPRJMOD}/ul_RCH8011NP-680L/KiCADv6/2024-06-12_07-35-42.kicad_sym")(options "")(descr ""))
+  (lib (name "SRN8040TA-820M")(type "KiCad")(uri "${KIPRJMOD}/ul_SRN8040TA-680M/KiCADv6/2024-06-12_07-34-50.kicad_sym")(options "")(descr ""))
+  (lib (name "RLB0914-820KL")(type "KiCad")(uri "${KIPRJMOD}/ul_RLB0914-820KL/KiCADv6/2024-06-12_07-33-54.kicad_sym")(options "")(descr ""))
+  (lib (name "SRR1260-221K")(type "KiCad")(uri "${KIPRJMOD}/ul_SRR1260-221K/KiCADv6/2024-06-12_07-33-31.kicad_sym")(options "")(descr ""))
+  (lib (name "MC34063ECN")(type "KiCad")(uri "${KIPRJMOD}/ul_MC34063ECN/KiCADv6/2024-06-12_07-32-11.kicad_sym")(options "")(descr ""))
+  (lib (name "MC33063ADR")(type "KiCad")(uri "${KIPRJMOD}/ul_MC33063ADR/KiCADv6/2024-06-12_07-32-42.kicad_sym")(options "")(descr ""))
+  (lib (name "AZ34063UMTR-G1")(type "KiCad")(uri "${KIPRJMOD}/ul_AZ34063UMTR-G1/KiCADv6/2024-06-12_07-33-03.kicad_sym")(options "")(descr ""))
+  (lib (name "3117_lib")(type "KiCad")(uri "${KIPRJMOD}/a/a/3117_lib.kicad_sym")(options "")(descr ""))
+)
