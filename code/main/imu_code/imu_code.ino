@@ -1,3 +1,4 @@
+
 #define FLEX_SENSOR_PIN 4  // GPIO4 = ADC1_CH3
 
 void setup() {
