@@ -9,7 +9,6 @@
 void setup() {
   Serial.begin(115200);
   analogReadResolution(12); // Optional: 0–4095 range (12-bit)
-  Serial.print("Started");
 }
 
 void loop() {
