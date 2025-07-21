@@ -20,7 +20,7 @@
 
 #include "heartRate.h"
 
-MAX30105 particleSensor;
+MAX30105 particleSensor(I2C_MODE, 0x57);
 
 const byte RATE_SIZE = 4; //Increase this for more averaging. 4 is good.
 byte rates[RATE_SIZE]; //Array of heart rates
