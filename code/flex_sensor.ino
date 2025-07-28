@@ -1,8 +1,9 @@
 
 #define THUMB_FLEX_SENSOR_PIN 4  // GPIO4 = ADC1_CH3
-#define INDEX_FLEX_SENSOR_PIN 6  // GPIO4 = ADC1_CH3
-#define MIDDLE_FLEX_SENSOR_PIN 15  // GPIO4 = ADC1_CH3
-#define RING_FLEX_SENSOR_PIN 17  // GPIO4 = ADC1_CH3
+#define INDEX_FLEX_SENSOR_PIN 5  // GPIO4 = ADC1_CH3
+#define MIDDLE_FLEX_SENSOR_PIN 6  // GPIO4 = ADC1_CH3
+#define RING_FLEX_SENSOR_PIN 7  // GPIO4 = ADC1_CH3
+#define LITTLE_FLEX_SENSOR_PIN 8  // GPIO4 = ADC1_CH3
 
 #define FLEX 1
 
@@ -37,29 +38,40 @@ void loop() {
   int index_average = index_total / numSamples;
   int middle_average = middle_total / numSamples;
   int ring_average = ring_total / numSamples;
+
+  /*
+  Serial.print(thumb_average);
+  Serial.print(";");
+  Serial.print(index_average);
+  Serial.print(";");
+  Serial.print(middle_average);
+  Serial.print(";");
+  Serial.println(ring_average);
+  */
   
   // Tells if the finger is flexed or not
-  if (thumb_average > 3000){
-    Serial.print("Thumb flexed");
+  
+  if (thumb_average > 2800){
+    Serial.print("Thumb flexed;");
   }else{
-    Serial.print("Thumb not flexed");
+    Serial.print("Thumb not flexed;");
   };
   if (index_average > 3000){
-    Serial.print("Index flexed");
+    Serial.print("Index flexed;");
   }else{
-    Serial.print("Index not flexed");
+    Serial.print("Index not flexed;");
   };
   if (middle_average > 3000){
-    Serial.print("Middle flexed");
+    Serial.print("Middle flexed;");
   }else{
-    Serial.print("Middle not flexed");
+    Serial.print("Middle not flexed;");
   };
   if (ring_average > 3000){
-    Serial.print("Ring flexed");
+    Serial.println("Ring flexed");
   }else{
-    Serial.print("Ring not flexed");
+    Serial.println("Ring not flexed");
   };
-
+  
   // Logic for flex
   if (thumb_average > 3000){
     thumb = FLEX;

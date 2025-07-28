@@ -20,7 +20,7 @@
 
 #include "heartRate.h"
 
-MAX30105 particleSensor(I2C_MODE, 0x57);
+MAX30105 particleSensor;
 
 const byte RATE_SIZE = 4; //Increase this for more averaging. 4 is good.
 byte rates[RATE_SIZE]; //Array of heart rates
@@ -36,6 +36,7 @@ void setup()
   Serial.println("Initializing...");
 
   // Initialize sensor
+  Wire.begin(12, 13);
   if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) //Use default I2C port, 400kHz speed
   {
     Serial.println("MAX30105 was not found. Please check wiring/power. ");

@@ -12,7 +12,7 @@ delay(1000); //relax...
 Serial.println("Processor came out of reset.\n");
 
 //Call .begin() to configure the IMU
-Wire.begin(19, 21); // SDA = 21, SCL = 19
+Wire.begin(12, 13); // SDA = 21, SCL = 19
   if (myIMU.begin() != 0) {
     Serial.println("IMU failed to initialize!");
   } else {
