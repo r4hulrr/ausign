@@ -27,7 +27,7 @@ void setup() {
   Serial.println("Starting BLE server");
 
   // 1. Initialize BLE
-  BLEDevice::init("Long name works now");
+  BLEDevice::init("Auslan_glove");
 
   // 2. Create server
   BLEServer *pServer = BLEDevice::createServer();
@@ -61,7 +61,7 @@ void setup() {
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
 
-  Serial.println("📡 BLE advertising started");
+  Serial.println("BLE advertising started");
 }
 
 void loop() {
