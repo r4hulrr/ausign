@@ -30,6 +30,31 @@ int beatAvg;
 
 LSM6DS3 myIMU(I2C_MODE, 0x6A); //Default constructor is I2C, addr 0x6B
 
+// BLUETOOTH CODE
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <BLE2902.h>  // Needed for notifications
+
+#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+
+BLECharacteristic *pCharacteristic;
+bool deviceConnected = false;
+
+class MyServerCallbacks: public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) {
+    deviceConnected = true;
+    Serial.println("Device connected");
+  }
+
+  void onDisconnect(BLEServer* pServer) {
+    deviceConnected = false;
+    Serial.println("Device disconnected");
+    BLEDevice::startAdvertising();  // Re-advertise
+  }
+};
+
 void setup() {
   Serial.begin(115200);
   analogReadResolution(12); // Optional: 0–4095 range (12-bit)
@@ -56,6 +81,45 @@ void setup() {
     Serial.println("IMU initialized successfully.");
   }
   // IMU CODE ENDS
+
+  // BLUETOOTH CODE BEGINS
+  // 1. Initialize BLE
+  BLEDevice::init("Auslan_glove");
+
+  // 2. Create server
+  BLEServer *pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  // 3. Create service
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  // 4. Create characteristic with notify property
+  pCharacteristic = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID,
+                      BLECharacteristic::PROPERTY_READ   |
+                      BLECharacteristic::PROPERTY_WRITE  |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+
+  // 5. Add descriptor (needed for notify to work on most clients)
+  pCharacteristic->addDescriptor(new BLE2902());
+
+  // 6. Set initial value (optional)
+  pCharacteristic->setValue("Hello from ESP32");
+
+  // 7. Start service
+  pService->start();
+
+  // 8. Start advertising
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(true);
+  pAdvertising->setMinPreferred(0x06);  // Fix for iOS
+  pAdvertising->setMinPreferred(0x12);
+  BLEDevice::startAdvertising();
+
+  Serial.println("BLE advertising started");
+  // BLUETOOTH CODE ENDS
 }
 
 void loop() {
@@ -90,28 +154,28 @@ void loop() {
   int little_average = little_total / numSamples;
 
   // Logic for flex
-  if (thumb_average > 3500){
+  if (thumb_average > 3300){
     thumb = FLEX;
   };
-  if (index_average > 3500){
+  if (index_average > 3300){
     index = FLEX;
   };
-  if (middle_average > 3400){
+  if (middle_average > 3200){
     middle = FLEX;
   };
-  if (ring_average > 3400){
+  if (ring_average > 3200){
     ring = FLEX;
   };
-  if (little_average > 3300){
+  if (little_average > 3100){
     little = FLEX;
   };
   // Pack finger flex states into 1 byte
   uint8_t flex_byte = 0;
-  flex_byte |= (thumb  << 0);
-  flex_byte |= (index  << 1);
+  flex_byte |= (little  << 0);
+  flex_byte |= (ring  << 1);
   flex_byte |= (middle << 2);
-  flex_byte |= (ring   << 3);
-  flex_byte |= (pinky  << 4);
+  flex_byte |= (index   << 3);
+  flex_byte |= (thumb  << 4);
   // FLEX SENSOR CODE ENDS HERE
 
   // HEART RATE CODE BEGINS HERE
@@ -161,5 +225,24 @@ void loop() {
 
   // IMU CODE ENDS HERE
   
+  // BLUETOOTH CODE BEGINS
+
+  // Pack everything into an 8-byte array
+  uint8_t payload[8];
+  memcpy(payload,     &ax, 2);
+  memcpy(payload + 2, &ay, 2);
+  memcpy(payload + 4, &az, 2);
+  payload[6] = flex_byte;
+  payload[7] = heartbeat_high;
+
+  static int counter = 0;
+
+  if (deviceConnected) {
+    // Send notification
+    pCharacteristic->setValue(payload, 8);
+    pCharacteristic->notify();
+  }
+  // BLUETOOTH CODE ENDS
+
   delay(100); // Print ~10 values per second
 }

@@ -1,4 +1,5 @@
 import asyncio
+import struct
 from bleak import BleakClient, BleakScanner
 
 # Match the exact name you gave your ESP32 device
@@ -22,8 +23,17 @@ async def main():
         print("Connected. Subscribing to notifications...")
 
         def notification_handler(sender, data):
-            # data is bytes
-            print(f"{data.decode('utf-8')}")
+            ax, ay, az, flex_byte, heartbeat = struct.unpack('<hhhBB', data)
+
+            fingers = {
+                "Thumb":   (flex_byte >> 0) & 1,
+                "Index":   (flex_byte >> 1) & 1,
+                "Middle":  (flex_byte >> 2) & 1,
+                "Ring":    (flex_byte >> 3) & 1,
+                "Pinky":   (flex_byte >> 4) & 1,
+            }
+
+            print(f"Accel: ({ax}, {ay}, {az}) | Fingers: {fingers} | Heartbeat: {heartbeat}")
 
         await client.start_notify(CHARACTERISTIC_UUID, notification_handler)
 
