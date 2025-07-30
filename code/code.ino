@@ -39,6 +39,8 @@ LSM6DS3 myIMU(I2C_MODE, 0x6A); //Default constructor is I2C, addr 0x6B
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
+String lastReceivedSign = "";
+
 BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
 
@@ -52,6 +54,17 @@ class MyServerCallbacks: public BLEServerCallbacks {
     deviceConnected = false;
     Serial.println("Device disconnected");
     BLEDevice::startAdvertising();  // Re-advertise
+  }
+};
+
+class BLECharacteristicCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pChar) {
+    std::string rxValue = pChar->getValue();
+    if (!rxValue.empty()) {
+      lastReceivedSign = String(rxValue.c_str());
+      Serial.print("Received Sign from PC: ");
+      Serial.println(lastReceivedSign);
+    }
   }
 };
 
@@ -106,6 +119,10 @@ void setup() {
 
   // 6. Set initial value (optional)
   pCharacteristic->setValue("Hello from ESP32");
+
+  // callback
+  pCharacteristic->setCallbacks(new BLECharacteristicCallbacks());
+
 
   // 7. Start service
   pService->start();
@@ -243,6 +260,12 @@ void loop() {
     pCharacteristic->notify();
   }
   // BLUETOOTH CODE ENDS
+
+  if (lastReceivedSign.length() > 0) {
+    Serial.print("ESP32 Displayed Sign: ");
+    Serial.println(lastReceivedSign);
+    lastReceivedSign = "";  // Clear after use
+  }
 
   delay(100); // Print ~10 values per second
 }

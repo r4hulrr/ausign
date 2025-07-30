@@ -1,5 +1,6 @@
 import asyncio
 import struct
+import os
 from bleak import BleakClient, BleakScanner
 from playsound import playsound
 import threading
@@ -55,7 +56,7 @@ async def main():
                 ax > 800
             ):
                 detected_sign = "1"
-                sound_file = "one.mp3"  # Replace with actual file path
+                sound_file = os.path.abspath("one.mp3")
 
             elif (
                 fingers["Thumb"] == 1 and
@@ -66,7 +67,7 @@ async def main():
                 ax > 800
             ):
                 detected_sign = "2"
-                sound_file = "two.mp3"
+                sound_file = os.path.abspath("two.mp3")
 
             elif (
                 fingers["Thumb"] == 1 and
@@ -77,13 +78,15 @@ async def main():
                 ax > 800
             ):
                 detected_sign = "3"
-                sound_file = "three.mp3"
+                sound_file = os.path.abspath("three.mp3")
 
             if detected_sign and detected_sign != last_detected_sign:
                 print(f"Detected sign: {detected_sign}")
                 last_detected_sign = detected_sign
                 if sound_file:
                     play_sound(sound_file)
+
+                asyncio.create_task(client.write_gatt_char(CHARACTERISTIC_UUID, detected_sign.encode(), response=False))
 
             elif detected_sign is None:
                 last_detected_sign = None
