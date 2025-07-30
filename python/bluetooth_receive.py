@@ -43,52 +43,51 @@ async def main():
 
             print(f"Accel: ({ax}, {ay}, {az}) | Fingers: {fingers} | Heartbeat: {heartbeat}")
 
-            # --- Define sign mappings ---
             detected_sign = None
+            sound_file = None
 
-            # Example: "Hello" sign
             if (
-                fingers["Thumb"] == 0 and
-                fingers["Index"] == 1 and
+                fingers["Thumb"] == 1 and
+                fingers["Index"] == 0 and
                 fingers["Middle"] == 1 and
                 fingers["Ring"] == 1 and
                 fingers["Pinky"] == 1 and
-                ax > 800  # Palm upright
+                ax > 800
             ):
-                detected_sign = "hello"
+                detected_sign = "1"
+                sound_file = "one.mp3"  # Replace with actual file path
 
-            # Example: "Yes" sign
+            elif (
+                fingers["Thumb"] == 1 and
+                fingers["Index"] == 0 and
+                fingers["Middle"] == 0 and
+                fingers["Ring"] == 1 and
+                fingers["Pinky"] == 1 and
+                ax > 800
+            ):
+                detected_sign = "2"
+                sound_file = "two.mp3"
+
             elif (
                 fingers["Thumb"] == 1 and
                 fingers["Index"] == 0 and
                 fingers["Middle"] == 0 and
                 fingers["Ring"] == 0 and
-                fingers["Pinky"] == 0 and
-                -220 < ay < -180  # Palm sideways
+                fingers["Pinky"] == 1 and
+                ax > 800
             ):
-                detected_sign = "yes"
+                detected_sign = "3"
+                sound_file = "three.mp3"
 
-            # Example: "No" sign
-            elif (
-                fingers["Thumb"] == 0 and
-                fingers["Index"] == 1 and
-                fingers["Middle"] == 1 and
-                fingers["Ring"] == 0 and
-                fingers["Pinky"] == 0 and
-                az < -80 and ay > 300  # Palm toward face
-            ):
-                detected_sign = "no"
-
-            # --- Play only if sign changed ---
             if detected_sign and detected_sign != last_detected_sign:
                 print(f"Detected sign: {detected_sign}")
                 last_detected_sign = detected_sign
+                if sound_file:
+                    play_sound(sound_file)
 
-            # Clear sign if gesture disappears
             elif detected_sign is None:
                 last_detected_sign = None
 
-            # Update history
             last_fingers.update(fingers)
             last_ax = ax
             last_ay = ay
