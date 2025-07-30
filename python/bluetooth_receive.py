@@ -4,14 +4,10 @@ from bleak import BleakClient, BleakScanner
 from playsound import playsound
 import threading
 
-# Match the exact name you gave your ESP32 device
 DEVICE_NAME = "Auslan_glove"
-
-# These must match the UUIDs in your ESP32 code
 SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-# Play sound in a separate thread to avoid blocking BLE notifications
 def play_sound(filename):
     threading.Thread(target=playsound, args=(filename,), daemon=True).start()
 
@@ -29,8 +25,12 @@ async def main():
         print("Connected. Subscribing to notifications...")
 
         last_fingers = {}
+        last_ax = last_ay = last_az = None
+        last_detected_sign = None  # To prevent repeated plays
 
         def notification_handler(sender, data):
+            nonlocal last_ax, last_ay, last_az, last_fingers, last_detected_sign
+
             ax, ay, az, flex_byte, heartbeat = struct.unpack('<hhhBB', data)
 
             fingers = {
@@ -43,19 +43,56 @@ async def main():
 
             print(f"Accel: ({ax}, {ay}, {az}) | Fingers: {fingers} | Heartbeat: {heartbeat}")
 
-            # Example: Play a sound when a finger bends (value goes from 0 -> 1)
-            for finger, state in fingers.items():
-                if last_fingers.get(finger) != state and state == 1:
-                    sound_file = f"sounds/{finger.lower()}.mp3"
-                    print(f"Playing sound for {finger}")
-                    play_sound(sound_file)
+            # --- Define sign mappings ---
+            detected_sign = None
 
-            # Heartbeat can trigger a different sound
-            if heartbeat > 180:
-                play_sound("sounds/heartbeat_alert.mp3")
+            # Example: "Hello" sign
+            if (
+                fingers["Thumb"] == 0 and
+                fingers["Index"] == 1 and
+                fingers["Middle"] == 1 and
+                fingers["Ring"] == 1 and
+                fingers["Pinky"] == 1 and
+                ax > 800  # Palm upright
+            ):
+                detected_sign = "hello"
 
-            # Save current finger state
+            # Example: "Yes" sign
+            elif (
+                fingers["Thumb"] == 1 and
+                fingers["Index"] == 0 and
+                fingers["Middle"] == 0 and
+                fingers["Ring"] == 0 and
+                fingers["Pinky"] == 0 and
+                -220 < ay < -180  # Palm sideways
+            ):
+                detected_sign = "yes"
+
+            # Example: "No" sign
+            elif (
+                fingers["Thumb"] == 0 and
+                fingers["Index"] == 1 and
+                fingers["Middle"] == 1 and
+                fingers["Ring"] == 0 and
+                fingers["Pinky"] == 0 and
+                az < -80 and ay > 300  # Palm toward face
+            ):
+                detected_sign = "no"
+
+            # --- Play only if sign changed ---
+            if detected_sign and detected_sign != last_detected_sign:
+                print(f"Detected sign: {detected_sign}")
+                last_detected_sign = detected_sign
+
+            # Clear sign if gesture disappears
+            elif detected_sign is None:
+                last_detected_sign = None
+
+            # Update history
             last_fingers.update(fingers)
+            last_ax = ax
+            last_ay = ay
+            last_az = az
 
         await client.start_notify(CHARACTERISTIC_UUID, notification_handler)
 
