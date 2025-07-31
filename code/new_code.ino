@@ -1,3 +1,13 @@
+// I2C config
+#define I2C0_SDA_PIN 12
+#define I2C0_SCL_PIN 13
+#define I2C1_SDA_PIN 21
+#define I2C1_SCL_PIN 47
+#include <Wire.h>
+
+TwoWire I2C0 = TwoWire(0);
+TwoWire I2C1 = TwoWire(1);
+
 // FLEX SENSOR
 #define THUMB_FLEX_SENSOR_PIN 4
 #define INDEX_FLEX_SENSOR_PIN 5
@@ -7,8 +17,21 @@
 
 #define FLEX 1
 
+// LCD SCREEN
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128  // OLED display width, in pixels
+#define SCREEN_HEIGHT 64  // OLED display height, in pixels
+
+// Declaration for SSD1306 display connected using I2C
+#define OLED_RESET -1  // Reset pin
+#define SCREEN_ADDRESS 0x3C
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
 // HEART RATE
-#include <Wire.h>
 #include "MAX30105.h"
 #include "heartRate.h"
 #include <SPI.h>
@@ -70,7 +93,8 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
 void setup() {
   Serial.begin(115200);
   analogReadResolution(12);
-  Wire.begin(12, 13);  // SDA, SCL
+  Wire.begin(I2C0_SDA_PIN, I2C0_SCL_PIN);  // SDA, SCL
+  I2C1.begin(I2C1_SDA_PIN, I2C1_SCL_PIN);
 
   // HEART RATE INIT
   if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) {
@@ -114,6 +138,28 @@ void setup() {
   BLEDevice::startAdvertising();
 
   Serial.println("BLE advertising started");
+  
+  // LCD SCREEN
+
+
+  // initialize the OLED object
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;)
+      ;  // Don't proceed, loop forever
+  }
+
+  // Clear the buffer.
+  display.clearDisplay();
+
+  // Display Text
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 28);
+  display.println("Auslan Glove!");
+  display.display();
+  delay(2000);
+  display.clearDisplay();
 }
 
 void loop() {
@@ -195,6 +241,14 @@ void loop() {
   if (lastReceivedSign.length() > 0) {
     Serial.print("ESP32 Displayed Sign: ");
     Serial.println(lastReceivedSign);
+
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 24);
+    display.println(lastReceivedSign);
+    display.display();
+
     lastReceivedSign = "";
   }
 
