@@ -1,4 +1,4 @@
-// FLEX SENSOR
+// FLEX SENSOR definitions
 #define THUMB_FLEX_SENSOR_PIN 4
 #define INDEX_FLEX_SENSOR_PIN 5
 #define MIDDLE_FLEX_SENSOR_PIN 6
@@ -7,12 +7,25 @@
 
 #define FLEX 1
 
-// HEART RATE
+// Bluetooth definitons
+#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+
+// HEART RATE includes
 #include <Wire.h>
 #include "MAX30105.h"
 #include "heartRate.h"
 #include <SPI.h>
 
+// IMU SENSOR includes
+#include "SparkFunLSM6DS3.h"
+#include "SPI.h"
+
+// BLUETOOTH includes
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <BLE2902.h>
 
 MAX30105 particleSensor;
 const byte RATE_SIZE = 4;
@@ -23,20 +36,7 @@ long lastBeat = 0;
 float beatsPerMinute;
 int beatAvg;
 
-// IMU SENSOR
-#include "SparkFunLSM6DS3.h"
-#include "SPI.h"
-
 LSM6DS3 myIMU(I2C_MODE, 0x6A); // I2C, addr 0x6A
-
-// BLUETOOTH
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
-#include <BLE2902.h>
-
-#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
 BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
