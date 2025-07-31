@@ -11,11 +11,20 @@
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
+// LCD address definition
+#define I2C_ADDRESS 0x3C
+#define RST_PIN -1
+
 // HEART RATE includes
 #include <Wire.h>
 #include "MAX30105.h"
 #include "heartRate.h"
 #include <SPI.h>
+
+// LCD Screen includes
+#include <Wire.h>
+#include "SSD1306Ascii.h"
+#include "SSD1306AsciiWire.h"
 
 // IMU SENSOR includes
 #include "SparkFunLSM6DS3.h"
@@ -37,6 +46,8 @@ float beatsPerMinute;
 int beatAvg;
 
 LSM6DS3 myIMU(I2C_MODE, 0x6A); // I2C, addr 0x6A
+
+SSD1306AsciiWire oled(Wire1);
 
 BLECharacteristic *pCharacteristic;
 bool deviceConnected = false;
@@ -71,6 +82,20 @@ void setup() {
   Serial.begin(115200);
   analogReadResolution(12);
   Wire.begin(12, 13);  // SDA, SCL
+
+  // LCD INIT
+  Wire1.begin(21, 47);          // SDA, SCL
+  Wire1.setClock(400000L);      // 400 kHz fast mode
+
+  #if RST_PIN >= 0
+    oled.begin(&Adafruit128x64, I2C_ADDRESS, RST_PIN);
+  #else
+    oled.begin(&Adafruit128x64, I2C_ADDRESS);
+  #endif
+
+  oled.setFont(Adafruit5x7);
+  oled.clear();
+  oled.println("Auslan");
 
   // HEART RATE INIT
   if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) {
@@ -195,6 +220,9 @@ void loop() {
   if (lastReceivedSign.length() > 0) {
     Serial.print("ESP32 Displayed Sign: ");
     Serial.println(lastReceivedSign);
+    oled.clear();
+    oled.println(lastReceivedSign);
+    
     lastReceivedSign = "";
   }
 
