@@ -93,8 +93,10 @@ void setup() {
     oled.begin(&Adafruit128x64, I2C_ADDRESS);
   #endif
 
-  oled.setFont(Adafruit5x7);
+  oled.setFont(Arial_bold_14);
+  oled.displayRemap(true);
   oled.clear();
+  oled.println();
   oled.println("Auslan");
 
   // HEART RATE INIT
@@ -221,6 +223,7 @@ void loop() {
     Serial.print("ESP32 Displayed Sign: ");
     Serial.println(lastReceivedSign);
     oled.clear();
+    oled.println();
     oled.println(lastReceivedSign);
     
     lastReceivedSign = "";
