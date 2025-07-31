@@ -2,19 +2,32 @@ import asyncio
 import struct
 import os
 from bleak import BleakClient, BleakScanner
-from playsound import playsound
-import threading
+import pygame
 
 DEVICE_NAME = "Auslan_glove"
 SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
+audio_initialized = False
+
 def play_sound(filename):
-    threading.Thread(target=playsound, args=(filename,), daemon=True).start()
+    global audio_initialized
+    try:
+        if not audio_initialized:
+            pygame.mixer.init()
+            audio_initialized = True
+        pygame.mixer.music.load(filename)
+        pygame.mixer.music.play()
+    except Exception as e:
+        print(f"Error playing sound: {e}")
 
 async def main():
     print("Scanning for ESP32...")
-    device = await BleakScanner.find_device_by_name(DEVICE_NAME, timeout=10.0)
+    try:
+        device = await BleakScanner.find_device_by_name(DEVICE_NAME, timeout=10.0)
+    except asyncio.exceptions.CancelledError:
+        print("Scan cancelled unexpectedly. Retrying...")
+        return
 
     if not device:
         print("Device not found. Is it powered on and advertising?")
@@ -27,7 +40,7 @@ async def main():
 
         last_fingers = {}
         last_ax = last_ay = last_az = None
-        last_detected_sign = None  # To prevent repeated plays
+        last_detected_sign = None
 
         def notification_handler(sender, data):
             nonlocal last_ax, last_ay, last_az, last_fingers, last_detected_sign
@@ -56,7 +69,7 @@ async def main():
                 ax > 800
             ):
                 detected_sign = "1"
-                sound_file = os.path.abspath("one.mp3")
+                sound_file = os.path.abspath("python\one.wav")
 
             elif (
                 fingers["Thumb"] == 1 and
@@ -67,7 +80,7 @@ async def main():
                 ax > 800
             ):
                 detected_sign = "2"
-                sound_file = os.path.abspath("two.mp3")
+                sound_file = os.path.abspath("python/two.wav")
 
             elif (
                 fingers["Thumb"] == 1 and
@@ -78,7 +91,7 @@ async def main():
                 ax > 800
             ):
                 detected_sign = "3"
-                sound_file = os.path.abspath("three.mp3")
+                sound_file = os.path.abspath("python/three.wav")
 
             if detected_sign and detected_sign != last_detected_sign:
                 print(f"Detected sign: {detected_sign}")
@@ -87,7 +100,6 @@ async def main():
                     play_sound(sound_file)
 
                 asyncio.create_task(client.write_gatt_char(CHARACTERISTIC_UUID, detected_sign.encode(), response=False))
-
             elif detected_sign is None:
                 last_detected_sign = None
 
@@ -98,8 +110,11 @@ async def main():
 
         await client.start_notify(CHARACTERISTIC_UUID, notification_handler)
 
-        while True:
-            await asyncio.sleep(1)
+        try:
+            while True:
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            pass
 
         await client.stop_notify(CHARACTERISTIC_UUID)
         print("Disconnected.")

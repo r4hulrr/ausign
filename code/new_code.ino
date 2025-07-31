@@ -11,6 +11,8 @@
 #include <Wire.h>
 #include "MAX30105.h"
 #include "heartRate.h"
+#include <SPI.h>
+
 
 MAX30105 particleSensor;
 const byte RATE_SIZE = 4;
@@ -138,7 +140,7 @@ void loop() {
   bool index = index_avg > 3300;
   bool middle = middle_avg > 3200;
   bool ring = ring_avg > 3200;
-  bool little = little_avg > 3100;
+  bool little = little_avg > 3000;
 
   uint8_t flex_byte = 0;
   flex_byte |= (little << 0);
