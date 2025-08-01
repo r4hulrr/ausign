@@ -16,9 +16,9 @@ void setup() {
     while (1);
   }
 
-  File f = LittleFS.open("/loud_audio.raw", "r");
+  File f = LittleFS.open("/hello.raw", "r");
   if (!f) {
-    Serial.println("Failed to open /loud_audio.raw");
+    Serial.println("Failed to open /hello.raw");
     return;
   }
 
