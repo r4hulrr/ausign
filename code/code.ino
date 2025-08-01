@@ -1,3 +1,13 @@
+#include <Arduino.h>
+#include <FS.h>
+#include <LittleFS.h>
+#include <driver/i2s.h>
+
+// I2S audio pins
+#define I2S_DOUT 9
+#define I2S_BCLK 10
+#define I2S_LRC  11
+
 // FLEX SENSOR definitions
 #define THUMB_FLEX_SENSOR_PIN 4
 #define INDEX_FLEX_SENSOR_PIN 5
@@ -7,53 +17,41 @@
 
 #define FLEX 1
 
-// Bluetooth definitons
+// BLE definitions
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-// LCD address definition
+// LCD definitions
 #define I2C_ADDRESS 0x3C
 #define RST_PIN -1
 
-// HEART RATE includes
+// Includes
 #include <Wire.h>
 #include "MAX30105.h"
 #include "heartRate.h"
-#include <SPI.h>
-
-// LCD Screen includes
-#include <Wire.h>
 #include "SSD1306Ascii.h"
 #include "SSD1306AsciiWire.h"
-
-// IMU SENSOR includes
 #include "SparkFunLSM6DS3.h"
-#include "SPI.h"
-
-// BLUETOOTH includes
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
 
+// Global instances
 MAX30105 particleSensor;
+LSM6DS3 myIMU(I2C_MODE, 0x6A);
+SSD1306AsciiWire oled(Wire1);
+BLECharacteristic *pCharacteristic;
+bool deviceConnected = false;
+String lastReceivedSign = "";
 const byte RATE_SIZE = 4;
 byte rates[RATE_SIZE];
 byte rateSpot = 0;
 long lastBeat = 0;
-
 float beatsPerMinute;
 int beatAvg;
 
-LSM6DS3 myIMU(I2C_MODE, 0x6A); // I2C, addr 0x6A
-
-SSD1306AsciiWire oled(Wire1);
-
-BLECharacteristic *pCharacteristic;
-bool deviceConnected = false;
-String lastReceivedSign = "";
-
-// BLE server callbacks
+// BLE server callback
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     deviceConnected = true;
@@ -66,7 +64,7 @@ class MyServerCallbacks : public BLEServerCallbacks {
   }
 };
 
-// BLE write callback (receives detected sign from PC)
+// BLE characteristic write callback
 class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pChar) override {
     String rxValue = pChar->getValue();
@@ -78,28 +76,81 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
   }
 };
 
+// Initialize I2S
+void initI2S() {
+  const i2s_config_t i2s_config = {
+    .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
+    .sample_rate = 44100,
+    .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
+    .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
+    .communication_format = I2S_COMM_FORMAT_I2S,
+    .intr_alloc_flags = 0,
+    .dma_buf_count = 8,
+    .dma_buf_len = 64,
+    .use_apll = false,
+    .tx_desc_auto_clear = true,
+    .fixed_mclk = 0
+  };
+
+  const i2s_pin_config_t pin_config = {
+    .bck_io_num = I2S_BCLK,
+    .ws_io_num = I2S_LRC,
+    .data_out_num = I2S_DOUT,
+    .data_in_num = I2S_PIN_NO_CHANGE
+  };
+
+  i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
+  i2s_set_pin(I2S_NUM_0, &pin_config);
+}
+
+// Play audio corresponding to lastReceivedSign
+void playAudioFromFile(const String& name) {
+  String path = "/" + name + ".raw";
+  File f = LittleFS.open(path.c_str(), "r");
+  if (!f) {
+    Serial.print("Failed to open ");
+    Serial.println(path);
+    return;
+  }
+
+  Serial.print("Playing: ");
+  Serial.println(path);
+
+  uint8_t buffer[512];
+  size_t bytes_written;
+  while (f.available()) {
+    size_t len = f.read(buffer, sizeof(buffer));
+    i2s_write(I2S_NUM_0, buffer, len, &bytes_written, portMAX_DELAY);
+  }
+
+  f.close();
+  Serial.println("Done playing.");
+}
+
 void setup() {
   Serial.begin(115200);
   analogReadResolution(12);
-  Wire.begin(12, 13);  // SDA, SCL
+  Wire.begin(12, 13);  // heart sensor
 
-  // LCD INIT
-  Wire1.begin(21, 47);          // SDA, SCL
-  Wire1.setClock(400000L);      // 400 kHz fast mode
-
-  #if RST_PIN >= 0
-    oled.begin(&Adafruit128x64, I2C_ADDRESS, RST_PIN);
-  #else
-    oled.begin(&Adafruit128x64, I2C_ADDRESS);
-  #endif
-
+  // LCD
+  Wire1.begin(21, 47);
+  Wire1.setClock(400000L);
+  oled.begin(&Adafruit128x64, I2C_ADDRESS);
   oled.setFont(Arial_bold_14);
   oled.displayRemap(true);
   oled.clear();
-  oled.println();
-  oled.println("Auslan");
+  oled.println("\nAuslan");
 
-  // HEART RATE INIT
+  // LittleFS
+  if (!LittleFS.begin()) {
+    Serial.println("LittleFS mount failed");
+    while (1);
+  }
+
+  // I2S
+  initI2S();
+
+  // Heart sensor
   if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) {
     Serial.println("MAX30105 not found!");
     while (1);
@@ -108,87 +159,68 @@ void setup() {
   particleSensor.setPulseAmplitudeRed(0x0A);
   particleSensor.setPulseAmplitudeGreen(0);
 
-  // IMU INIT
-  if (myIMU.begin() != 0) {
+  // IMU
+  if (myIMU.begin() != 0)
     Serial.println("IMU failed to initialize!");
-  } else {
+  else
     Serial.println("IMU initialized.");
-  }
 
-  // BLE INIT
+  // BLE
   BLEDevice::init("Auslan_glove");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
-
   BLEService *pService = pServer->createService(SERVICE_UUID);
-  pCharacteristic = pService->createCharacteristic(
-    CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ |
-    BLECharacteristic::PROPERTY_WRITE |
-    BLECharacteristic::PROPERTY_NOTIFY
-  );
+  pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_READ |
+      BLECharacteristic::PROPERTY_WRITE |
+      BLECharacteristic::PROPERTY_NOTIFY);
   pCharacteristic->addDescriptor(new BLE2902());
   pCharacteristic->setCallbacks(new MyCharacteristicCallbacks());
   pCharacteristic->setValue("Hello from ESP32");
-
   pService->start();
-
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(true);
   pAdvertising->setMinPreferred(0x06);
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
-
   Serial.println("BLE advertising started");
 }
 
 void loop() {
-  // --- FLEX SENSOR ---
+  // Flex sensor
   const int numSamples = 50;
-  long thumb_total = 0, index_total = 0, middle_total = 0, ring_total = 0, little_total = 0;
-
+  long totals[5] = {0};
   for (int i = 0; i < numSamples; i++) {
-    thumb_total += analogRead(THUMB_FLEX_SENSOR_PIN);
-    index_total += analogRead(INDEX_FLEX_SENSOR_PIN);
-    middle_total += analogRead(MIDDLE_FLEX_SENSOR_PIN);
-    ring_total += analogRead(RING_FLEX_SENSOR_PIN);
-    little_total += analogRead(LITTLE_FLEX_SENSOR_PIN);
+    totals[0] += analogRead(LITTLE_FLEX_SENSOR_PIN);
+    totals[1] += analogRead(RING_FLEX_SENSOR_PIN);
+    totals[2] += analogRead(MIDDLE_FLEX_SENSOR_PIN);
+    totals[3] += analogRead(INDEX_FLEX_SENSOR_PIN);
+    totals[4] += analogRead(THUMB_FLEX_SENSOR_PIN);
     delay(2);
   }
 
-  int thumb_avg = thumb_total / numSamples;
-  int index_avg = index_total / numSamples;
-  int middle_avg = middle_total / numSamples;
-  int ring_avg = ring_total / numSamples;
-  int little_avg = little_total / numSamples;
+  int avgs[5];
+  for (int i = 0; i < 5; i++) avgs[i] = totals[i] / numSamples;
 
-  bool thumb = thumb_avg > 3300;
-  bool index = index_avg > 3300;
-  bool middle = middle_avg > 3200;
-  bool ring = ring_avg > 3200;
-  bool little = little_avg > 3000;
+  bool flex[5] = {
+    avgs[0] > 3250, avgs[1] > 3300, avgs[2] > 3150,
+    avgs[3] > 3150, avgs[4] > 3350
+  };
 
   uint8_t flex_byte = 0;
-  flex_byte |= (little << 0);
-  flex_byte |= (ring << 1);
-  flex_byte |= (middle << 2);
-  flex_byte |= (index << 3);
-  flex_byte |= (thumb << 4);
+  for (int i = 0; i < 5; i++) flex_byte |= (flex[i] << i);
 
-  // --- HEART RATE ---
+  // Heartbeat
   uint8_t heartbeat_high = 0;
   long irValue = particleSensor.getIR();
-
   if (checkForBeat(irValue)) {
     long delta = millis() - lastBeat;
     lastBeat = millis();
     beatsPerMinute = 60 / (delta / 1000.0);
-
-    if (beatsPerMinute < 255 && beatsPerMinute > 20) {
+    if (beatsPerMinute > 20 && beatsPerMinute < 255) {
       rates[rateSpot++] = (byte)beatsPerMinute;
       rateSpot %= RATE_SIZE;
-
       beatAvg = 0;
       for (byte i = 0; i < RATE_SIZE; i++) beatAvg += rates[i];
       beatAvg /= RATE_SIZE;
@@ -196,16 +228,12 @@ void loop() {
   }
   if (beatsPerMinute > 100) heartbeat_high = 1;
 
-  // --- IMU ---
-  float ax_f = myIMU.readFloatAccelX();
-  float ay_f = myIMU.readFloatAccelY();
-  float az_f = myIMU.readFloatAccelZ();
+  // IMU
+  int16_t ax = myIMU.readFloatAccelX() * 1000;
+  int16_t ay = myIMU.readFloatAccelY() * 1000;
+  int16_t az = myIMU.readFloatAccelZ() * 1000;
 
-  int16_t ax = (int16_t)(ax_f * 1000.0);
-  int16_t ay = (int16_t)(ay_f * 1000.0);
-  int16_t az = (int16_t)(az_f * 1000.0);
-
-  // --- BLUETOOTH SEND ---
+  // BLE send
   uint8_t payload[8];
   memcpy(payload, &ax, 2);
   memcpy(payload + 2, &ay, 2);
@@ -218,14 +246,14 @@ void loop() {
     pCharacteristic->notify();
   }
 
-  // --- RECEIVED SIGN DISPLAY ---
+  // Sign received
   if (lastReceivedSign.length() > 0) {
     Serial.print("ESP32 Displayed Sign: ");
     Serial.println(lastReceivedSign);
     oled.clear();
     oled.println();
     oled.println(lastReceivedSign);
-    
+    playAudioFromFile(lastReceivedSign);  // 🔊 Play .raw audio
     lastReceivedSign = "";
   }
 
