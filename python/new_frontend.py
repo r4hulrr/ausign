@@ -5,6 +5,7 @@ import tkinter as tk
 from bleak import BleakClient, BleakScanner
 import pygame
 import threading
+from symbols import sign_definitions  # <-- imported here
 
 # -------- BLE SETTINGS -------- #
 DEVICE_NAME = "Auslan_glove"
@@ -109,38 +110,12 @@ async def main():
             detected_sign = None
             sound_file = None
 
-            if (
-                fingers["Thumb"] == 1 and
-                fingers["Index"] == 0 and
-                fingers["Middle"] == 1 and
-                fingers["Ring"] == 1 and
-                fingers["Little"] == 1 and
-                ax > 800
-            ):
-                detected_sign = "1"
-                sound_file = os.path.abspath("python/one.wav")
-
-            elif (
-                fingers["Thumb"] == 1 and
-                fingers["Index"] == 0 and
-                fingers["Middle"] == 0 and
-                fingers["Ring"] == 1 and
-                fingers["Little"] == 1 and
-                ax > 800
-            ):
-                detected_sign = "2"
-                sound_file = os.path.abspath("python/two.wav")
-
-            elif (
-                fingers["Thumb"] == 1 and
-                fingers["Index"] == 0 and
-                fingers["Middle"] == 0 and
-                fingers["Ring"] == 0 and
-                fingers["Little"] == 1 and
-                ax > 800
-            ):
-                detected_sign = "3"
-                sound_file = os.path.abspath("python/three.wav")
+            for symbol in sign_definitions:
+                match = all(fingers[f] == v for f, v in symbol["fingers"].items())
+                if match and symbol["conditions"](ax, ay, az, heartbeat):
+                    detected_sign = symbol["sign"]
+                    sound_file = os.path.abspath(symbol["audio"])
+                    break
 
             if detected_sign and detected_sign != last_detected_sign:
                 last_detected_sign = detected_sign
@@ -148,7 +123,6 @@ async def main():
                     play_sound(sound_file)
                 asyncio.create_task(client.write_gatt_char(CHARACTERISTIC_UUID, detected_sign.encode(), response=False))
 
-            # Always update with last known sign
             root.after(0, update_gui, ax, ay, az, fingers, heartbeat, last_detected_sign)
 
         await client.start_notify(CHARACTERISTIC_UUID, notification_handler)
