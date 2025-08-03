@@ -23,37 +23,37 @@ sign_definitions = [
     {
         "fingers": {"Thumb": 1, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0},
         "conditions": lambda ax, ay, az, heartbeat: ax > 800,
-        "sign": "3",
+        "sign": "4",
         "audio": "python/four.wav"
     },
     {
         "fingers": {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0},
         "conditions": lambda ax, ay, az, heartbeat: ax > 800,
-        "sign": "3",
+        "sign": "5",
         "audio": "python/five.wav"
     },
     {
         "fingers": {"Thumb": 0, "Index": 1, "Middle": 1, "Ring": 1, "Little": 1},
         "conditions": lambda ax, ay, az, heartbeat: ax > 800,
-        "sign": "3",
+        "sign": "6",
         "audio": "python/six.wav"
     },
     {
         "fingers": {"Thumb": 0, "Index": 0, "Middle": 1, "Ring": 1, "Little": 1},
         "conditions": lambda ax, ay, az, heartbeat: ax > 800,
-        "sign": "3",
+        "sign": "7",
         "audio": "python/seven.wav"
     },
     {
         "fingers": {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 1, "Little": 1},
         "conditions": lambda ax, ay, az, heartbeat: ax > 800,
-        "sign": "3",
+        "sign": "8",
         "audio": "python/eight.wav"
     },
     {
         "fingers": {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 1},
         "conditions": lambda ax, ay, az, heartbeat: ax > 800,
-        "sign": "3",
+        "sign": "9",
         "audio": "python/nine.wav"
     }
 ]

@@ -204,8 +204,8 @@ void loop() {
   for (int i = 0; i < 5; i++) avgs[i] = totals[i] / numSamples;
 
   bool flex[5] = {
-    avgs[0] > 3250, avgs[1] > 3400, avgs[2] > 3150,
-    avgs[3] > 3150, avgs[4] > 3300
+    avgs[0] > 3250, avgs[1] > 3500, avgs[2] > 3150,
+    avgs[3] > 3100, avgs[4] > 3400
   };
 
   uint8_t flex_byte = 0;
