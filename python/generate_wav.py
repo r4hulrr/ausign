@@ -3,10 +3,10 @@ from pydub import AudioSegment
 import os
 
 # Config
-text = "nine"
+text = "hello"
 volume_boost_db = 10
 output_dir = "python/"
-wav_filename = "nine.wav"
+wav_filename = "hello.wav"
 wav_path = os.path.join(output_dir, wav_filename)
 
 # Make sure output directory exists

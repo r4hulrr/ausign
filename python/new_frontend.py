@@ -5,14 +5,14 @@ import tkinter as tk
 from bleak import BleakClient, BleakScanner
 import pygame
 import threading
-from symbols import sign_definitions  # <-- imported here
+from symbols import sign_definitions  
 
-# -------- BLE SETTINGS -------- #
+# ble
 DEVICE_NAME = "Auslan_glove"
 SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-# -------- AUDIO -------- #
+# audio
 audio_initialized = False
 is_muted = False
 
@@ -29,7 +29,7 @@ def play_sound(filename):
     except Exception as e:
         print(f"Error playing sound: {e}")
 
-# -------- GUI -------- #
+# gui
 root = tk.Tk()
 root.title("Auslan Glove Monitor")
 root.geometry("400x320")
@@ -66,7 +66,7 @@ mute_button.pack(pady=5)
 status_label = tk.Label(root, text="Bluetooth Status: Scanning...", font=("Helvetica", 10), fg="gray")
 status_label.pack(pady=10)
 
-# -------- ASYNC BLE -------- #
+# async ble
 def run_ble_loop():
     asyncio.run(main())
 
@@ -126,7 +126,7 @@ async def main():
                     candidate_sign = detected_sign
                     candidate_count = 1
 
-                if candidate_count == 3 and detected_sign != last_detected_sign:
+                if detected_sign != last_detected_sign:
                     last_detected_sign = detected_sign
                     if sound_file:
                         play_sound(sound_file)
@@ -148,6 +148,6 @@ async def main():
         await client.stop_notify(CHARACTERISTIC_UUID)
         root.after(0, update_gui, 0, 0, 0, {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0}, "--", last_detected_sign, "Disconnected")
 
-# -------- START -------- #
+# start
 threading.Thread(target=run_ble_loop, daemon=True).start()
 root.mainloop()

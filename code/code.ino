@@ -219,8 +219,8 @@ void loop() {
   Serial.println(avgs[4]);
 
   bool flex[5] = {
-    avgs[0] > 3250, avgs[1] > 3500, avgs[2] > 3150,
-    avgs[3] > 3100, avgs[4] > 3400
+    avgs[0] > 3500, avgs[1] > 3500, avgs[2] > 3400,
+    avgs[3] > 3400, avgs[4] > 3500
   };
 
   uint8_t flex_byte = 0;
@@ -268,7 +268,7 @@ void loop() {
     oled.clear();
     oled.println();
     oled.println(lastReceivedSign);
-    //playAudioFromFile(lastReceivedSign);  // Play .raw audio
+    playAudioFromFile(lastReceivedSign);  // Play .raw audio
     lastReceivedSign = "";
   }
 

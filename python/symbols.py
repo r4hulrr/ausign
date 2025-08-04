@@ -1,5 +1,7 @@
 # symbols.py
 import os
+import time
+
 
 sign_definitions = [
     {
@@ -55,5 +57,23 @@ sign_definitions = [
         "conditions": lambda ax, ay, az, heartbeat: ax > 800,
         "sign": "9",
         "audio": "python/nine.wav"
+    },
+    {
+        "fingers": {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0},
+        "conditions": lambda ax, ay, az, heartbeat: ax < 200 and ay <-300,
+        "sign": "Wave left",
+        "audio": ""
+    },
+    {
+        "fingers": {"Thumb": 1, "Index": 1, "Middle": 1, "Ring": 1, "Little": 1},
+        "conditions": lambda ax, ay, az, heartbeat: 200 < ax < 600 and 700 < ay <1000,
+        "sign": "My",
+        "audio": ""
+    },
+    {
+        "fingers": {"Thumb": 1, "Index": 0, "Middle": 0, "Ring": 1, "Little": 1},
+        "conditions": lambda ax, ay, az, heartbeat: 400 < ax < 600 and 500 < ay <700,
+        "sign": "Name",
+        "audio": ""
     }
 ]
