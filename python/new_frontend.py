@@ -93,9 +93,11 @@ async def main():
         root.after(0, update_gui, 0, 0, 0, {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0}, "--", "None", "Connected")
 
         last_detected_sign = "None"
+        candidate_sign = None
+        candidate_count = 0
 
         def notification_handler(sender, data):
-            nonlocal last_detected_sign
+            nonlocal last_detected_sign, candidate_sign, candidate_count
 
             ax, ay, az, flex_byte, heartbeat = struct.unpack('<hhhBB', data)
 
@@ -117,11 +119,21 @@ async def main():
                     sound_file = os.path.abspath(symbol["audio"])
                     break
 
-            if detected_sign and detected_sign != last_detected_sign:
-                last_detected_sign = detected_sign
-                if sound_file:
-                    play_sound(sound_file)
-                asyncio.create_task(client.write_gatt_char(CHARACTERISTIC_UUID, detected_sign.encode(), response=False))
+            if detected_sign:
+                if detected_sign == candidate_sign:
+                    candidate_count += 1
+                else:
+                    candidate_sign = detected_sign
+                    candidate_count = 1
+
+                if candidate_count == 3 and detected_sign != last_detected_sign:
+                    last_detected_sign = detected_sign
+                    if sound_file:
+                        play_sound(sound_file)
+                    asyncio.create_task(client.write_gatt_char(CHARACTERISTIC_UUID, detected_sign.encode(), response=False))
+            else:
+                candidate_sign = None
+                candidate_count = 0
 
             root.after(0, update_gui, ax, ay, az, fingers, heartbeat, last_detected_sign)
 

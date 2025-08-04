@@ -203,6 +203,21 @@ void loop() {
   int avgs[5];
   for (int i = 0; i < 5; i++) avgs[i] = totals[i] / numSamples;
 
+  Serial.print("Little:");
+  Serial.print(avgs[0]);
+  Serial.print(";");
+  Serial.print("Ring:");
+  Serial.print(avgs[1]);
+  Serial.print(";");
+  Serial.print("Middle:");
+  Serial.print(avgs[2]);
+  Serial.print(";");
+  Serial.print("Index:");
+  Serial.print(avgs[3]);
+  Serial.print(";");
+  Serial.print("Thumb:");
+  Serial.println(avgs[4]);
+
   bool flex[5] = {
     avgs[0] > 3250, avgs[1] > 3500, avgs[2] > 3150,
     avgs[3] > 3100, avgs[4] > 3400
@@ -253,7 +268,7 @@ void loop() {
     oled.clear();
     oled.println();
     oled.println(lastReceivedSign);
-    playAudioFromFile(lastReceivedSign);  // 🔊 Play .raw audio
+    //playAudioFromFile(lastReceivedSign);  // Play .raw audio
     lastReceivedSign = "";
   }
 
