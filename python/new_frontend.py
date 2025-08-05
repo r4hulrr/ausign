@@ -119,21 +119,37 @@ async def main():
                     sound_file = os.path.abspath(symbol["audio"])
                     break
 
-            if detected_sign:
-                if detected_sign == candidate_sign:
-                    candidate_count += 1
-                else:
-                    candidate_sign = detected_sign
-                    candidate_count = 1
+            # Keep track of last two valid signs
+                if not hasattr(notification_handler, "sign_history"):
+                    notification_handler.sign_history = []
 
-                if detected_sign != last_detected_sign:
-                    last_detected_sign = detected_sign
-                    if sound_file:
-                        play_sound(sound_file)
-                    asyncio.create_task(client.write_gatt_char(CHARACTERISTIC_UUID, detected_sign.encode(), response=False))
-            else:
-                candidate_sign = None
-                candidate_count = 0
+                if detected_sign:
+                    if detected_sign == candidate_sign:
+                        candidate_count += 1
+                    else:
+                        candidate_sign = detected_sign
+                        candidate_count = 1
+
+                    if candidate_count >= 1:  # Only commit after 1 matches
+                        notification_handler.sign_history.append(detected_sign)
+                        if len(notification_handler.sign_history) > 2:
+                            notification_handler.sign_history.pop(0)
+
+                        # Check sequence: wave left → 5
+                        if notification_handler.sign_history == ["wave left", "5"]:
+                            detected_sign = "hello"
+                            sound_file = os.path.abspath("audio/hello.wav")  # Path to your hello sound file
+                            notification_handler.sign_history = []  # Reset after success
+
+                        if detected_sign != last_detected_sign:
+                            last_detected_sign = detected_sign
+                            if sound_file:
+                                play_sound(sound_file)
+                            asyncio.create_task(client.write_gatt_char(CHARACTERISTIC_UUID, detected_sign.encode(), response=False))
+                else:
+                    candidate_sign = None
+                    candidate_count = 0
+
 
             root.after(0, update_gui, ax, ay, az, fingers, heartbeat, last_detected_sign)
 
