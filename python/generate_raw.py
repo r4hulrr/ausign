@@ -3,10 +3,10 @@ from pydub import AudioSegment
 import os
 
 # Config
-text = "nine"
+text = "love"
 volume_boost_db = 10
 output_dir = "code/data"
-raw_filename = "9.raw"
+raw_filename = "love.raw"
 raw_path = os.path.join(output_dir, raw_filename)
 
 # Generate speech
