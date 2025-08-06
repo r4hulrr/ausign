@@ -1,13 +1,14 @@
 import asyncio
 import struct
 import os
+import time
 import tkinter as tk
 from bleak import BleakClient, BleakScanner
 import pygame
 import threading
-from symbols import sign_definitions
+from symbols import sign_definitions  # Loaded from CSV
 
-# BLE settings
+# BLE Settings
 DEVICE_NAME = "Auslan_glove"
 SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
@@ -18,18 +19,24 @@ is_muted = False
 
 def play_sound(filename):
     global audio_initialized, is_muted
-    if is_muted:
+    if is_muted or not filename or not os.path.isfile(filename):
         return
     try:
         if not audio_initialized:
             pygame.mixer.init()
             audio_initialized = True
-        pygame.mixer.music.load(filename)
-        pygame.mixer.music.play()
+        sound = pygame.mixer.Sound(filename)
+        sound.play()
     except Exception as e:
         print(f"Error playing sound: {e}")
 
-# GUI
+def delayed_play(filename, delay=0.3):
+    def _delayed():
+        time.sleep(delay)
+        play_sound(filename)
+    threading.Thread(target=_delayed, daemon=True).start()
+
+# GUI Setup
 root = tk.Tk()
 root.title("Auslan Glove Monitor")
 root.geometry("400x320")
@@ -66,7 +73,7 @@ mute_button.pack(pady=5)
 status_label = tk.Label(root, text="Bluetooth Status: Scanning...", font=("Helvetica", 10), fg="gray")
 status_label.pack(pady=10)
 
-# BLE loop
+# BLE Loop Thread
 def run_ble_loop():
     asyncio.run(main())
 
@@ -80,33 +87,25 @@ def update_gui(ax, ay, az, fingers, heartbeat, detected_sign, ble_status=None):
         status_label.config(text=f"Bluetooth Status: {ble_status}")
 
 async def main():
-    root.after(0, update_gui, 0, 0, 0,
-                {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0},
-                "--", "None", "Scanning...")
-
+    root.after(0, update_gui, 0, 0, 0, {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0}, "--", "None", "Scanning...")
     device = await BleakScanner.find_device_by_name(DEVICE_NAME, timeout=10.0)
 
     if not device:
-        root.after(0, update_gui, 0, 0, 0,
-                    {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0},
-                    "--", "None", "Device not found.")
+        root.after(0, update_gui, 0, 0, 0, {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0}, "--", "None", "Device not found.")
         return
 
-    root.after(0, update_gui, 0, 0, 0,
-                {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0},
-                "--", "None", f"Found {DEVICE_NAME}, connecting...")
+    root.after(0, update_gui, 0, 0, 0, {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0}, "--", "None", f"Found {DEVICE_NAME}, connecting...")
 
     async with BleakClient(device) as client:
-        root.after(0, update_gui, 0, 0, 0,
-                    {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0},
-                    "--", "None", "Connected")
+        root.after(0, update_gui, 0, 0, 0, {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0}, "--", "None", "Connected")
 
         last_detected_sign = "None"
+        previous_sign = "None"
         candidate_sign = None
         candidate_count = 0
 
         def notification_handler(sender, data):
-            nonlocal last_detected_sign, candidate_sign, candidate_count
+            nonlocal last_detected_sign, previous_sign, candidate_sign, candidate_count
 
             ax, ay, az, flex_byte, heartbeat = struct.unpack('<hhhBB', data)
 
@@ -118,37 +117,16 @@ async def main():
                 "Little": (flex_byte >> 4) & 1,
             }
 
-            temp_sign = None
+            detected_sign = None
             sound_file = None
 
             for symbol in sign_definitions:
                 match = all(fingers[f] == v for f, v in symbol["fingers"].items())
                 if match and symbol["conditions"](ax, ay, az, heartbeat):
-                    temp_sign = symbol["sign"]
-                    sound_file = os.path.abspath(symbol["audio"])
+                    detected_sign = symbol["sign"]
+                    sound_file = os.path.abspath(symbol["audio"]) if symbol["audio"] else None
                     break
 
-            # Sign sequence handling (wave left → 5 → hello)
-            if not hasattr(notification_handler, "wave_left_flag"):
-                notification_handler.wave_left_flag = False
-
-            detected_sign = None  # what will actually be displayed/sent
-
-            if temp_sign == "wave left":
-                notification_handler.wave_left_flag = True
-                # Don't display or act on wave left itself
-                return
-
-            elif temp_sign == "5" and notification_handler.wave_left_flag:
-                detected_sign = "hello"
-                sound_file = os.path.abspath("audio/hello.wav")
-                notification_handler.wave_left_flag = False
-
-            else:
-                notification_handler.wave_left_flag = False
-                detected_sign = temp_sign
-
-            # Only proceed if a real sign is detected
             if detected_sign:
                 if detected_sign == candidate_sign:
                     candidate_count += 1
@@ -156,19 +134,29 @@ async def main():
                     candidate_sign = detected_sign
                     candidate_count = 1
 
-                if candidate_count >= 1 and detected_sign != last_detected_sign:
-                    last_detected_sign = detected_sign
-                    if sound_file:
+                if detected_sign != last_detected_sign:
+                    # Combo: "This" -> "My"
+                    if previous_sign == "This" and detected_sign == "My":
+                        play_sound("sounds/is.wav")
+                        delayed_play(sound_file, delay=0.3)
+                    # Combo: "My" -> "Name"
+                    elif previous_sign == "My" and detected_sign == "Name":
+                        play_sound("sounds/is.wav")
+                        delayed_play(sound_file, delay=0.3)
+                    # Normal sign
+                    elif sound_file:
                         play_sound(sound_file)
-                    asyncio.create_task(client.write_gatt_char(
-                        CHARACTERISTIC_UUID, detected_sign.encode(), response=False))
+
+                    previous_sign = last_detected_sign
+                    last_detected_sign = detected_sign
+
+                    asyncio.create_task(client.write_gatt_char(CHARACTERISTIC_UUID, detected_sign.encode(), response=False))
             else:
                 candidate_sign = None
                 candidate_count = 0
 
-            # Update GUI with final detected sign (not temp_sign)
             root.after(0, update_gui, ax, ay, az, fingers, heartbeat, last_detected_sign)
-        
+
         await client.start_notify(CHARACTERISTIC_UUID, notification_handler)
 
         try:
@@ -178,10 +166,8 @@ async def main():
             pass
 
         await client.stop_notify(CHARACTERISTIC_UUID)
-        root.after(0, update_gui, 0, 0, 0,
-                    {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0},
-                    "--", last_detected_sign, "Disconnected")
+        root.after(0, update_gui, 0, 0, 0, {"Thumb": 0, "Index": 0, "Middle": 0, "Ring": 0, "Little": 0}, "--", last_detected_sign, "Disconnected")
 
-# Start everything
+# Start BLE and GUI
 threading.Thread(target=run_ble_loop, daemon=True).start()
 root.mainloop()
