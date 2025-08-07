@@ -3,6 +3,9 @@
 #include <LittleFS.h>
 #include <driver/i2s.h>
 
+// Buttons
+#define HELP_PIN 48  // Both are active low
+#define BTN1_PIN 14  
 // I2S audio pins
 #define I2S_DOUT 9
 #define I2S_BCLK 10
@@ -50,6 +53,9 @@ byte rateSpot = 0;
 long lastBeat = 0;
 float beatsPerMinute;
 int beatAvg;
+// Priority-based audio playback
+static bool helpPreviouslyPressed = false;
+static bool btnPreviouslyPressed = false;
 
 // BLE server callback
 class MyServerCallbacks : public BLEServerCallbacks {
@@ -130,6 +136,8 @@ void playAudioFromFile(const String& name) {
 void setup() {
   Serial.begin(115200);
   analogReadResolution(12);
+  pinMode(BTN1_PIN, INPUT_PULLUP);
+  pinMode(HELP_PIN, INPUT_PULLUP);
   Wire.begin(12, 13);  // heart sensor
 
   // LCD
@@ -220,7 +228,7 @@ void loop() {
 
   bool flex[5] = {
     avgs[0] > 3500, avgs[1] > 3500, avgs[2] > 3400,
-    avgs[3] > 3400, avgs[4] > 3500
+    avgs[3] > 3600, avgs[4] > 3500
   };
 
   uint8_t flex_byte = 0;
@@ -261,8 +269,32 @@ void loop() {
     pCharacteristic->notify();
   }
 
-  // Sign received
-  if (lastReceivedSign.length() > 0) {
+  // 1. Highest priority: HELP
+  if (digitalRead(HELP_PIN) == LOW && !helpPreviouslyPressed) {
+    helpPreviouslyPressed = true;
+    Serial.println("HELP pressed!");
+    oled.clear();
+    oled.println("HELP!");
+    playAudioFromFile("help");  // Plays /help.raw
+  } else if (digitalRead(HELP_PIN) == HIGH && helpPreviouslyPressed) {
+    helpPreviouslyPressed = false;
+  }
+
+  // 2. Medium priority: BUTTON (only if HELP not pressed)
+  else if (digitalRead(BTN1_PIN) == LOW && !btnPreviouslyPressed) {
+    btnPreviouslyPressed = true;
+    Serial.println("Button pressed!");
+    oled.clear();
+    oled.println("I am deaf");
+    playAudioFromFile("button");  // Plays /button.raw
+  } else if (digitalRead(BTN1_PIN) == HIGH && btnPreviouslyPressed) {
+    btnPreviouslyPressed = false;
+  }
+
+  // 3. Lowest priority: BLE sign playback (only if no buttons pressed)
+  else if (lastReceivedSign.length() > 0 && 
+          digitalRead(HELP_PIN) == HIGH && 
+          digitalRead(BTN1_PIN) == HIGH) {
     Serial.print("ESP32 Displayed Sign: ");
     Serial.println(lastReceivedSign);
     oled.clear();
@@ -271,6 +303,5 @@ void loop() {
     playAudioFromFile(lastReceivedSign);  // Play .raw audio
     lastReceivedSign = "";
   }
-
   delay(100);
 }

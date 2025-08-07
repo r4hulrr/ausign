@@ -3,10 +3,10 @@ from pydub import AudioSegment
 import os
 
 # Config
-text = "enzo"
+text = "Name"
 volume_boost_db = 10
 output_dir = "sounds/"
-wav_filename = "enzo.wav"
+wav_filename = "name.wav"
 wav_path = os.path.join(output_dir, wav_filename)
 
 # Make sure output directory exists

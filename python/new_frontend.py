@@ -134,7 +134,7 @@ async def main():
                     candidate_sign = detected_sign
                     candidate_count = 1
 
-                if detected_sign != last_detected_sign:
+                if candidate_count == 1 and detected_sign != last_detected_sign:
                     # Combo: "This" -> "My"
                     if previous_sign == "This" and detected_sign == "My":
                         play_sound("sounds/is.wav")
