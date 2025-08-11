@@ -1,6 +1,6 @@
 # AUSIGN – Real-Time Auslan Sign Language Interpreter
 
- **Breaking communication barriers** for the Australian Deaf community with an affordable, wearable, real-time Auslan-to-speech translation glove. Check out the [demo video](demo/demo_video.mov).
+ **Breaking communication barriers** for the Australian Deaf community with an affordable, wearable, real-time Auslan-to-speech translation glove. Check out the [demo video](https://drive.google.com/file/d/1WPN_qFuqe7VqrdAuftsNLOaqI1UlMCOe/view?usp=sharing).
 
 
 ## Overview
