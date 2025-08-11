@@ -20,6 +20,10 @@ Unlike existing ASL-centric devices, AUSIGN is **purpose-built for Auslan**, inc
 
 ## System Architecture
 
+**High Level Diagram**
+
+<img src="docs/design_docs/3117_Block_Diagram (1).png" alt="High Level Diagram" width="650" height="650">
+
 **Hardware**
 - **Sensors:**  
   - 5× flex sensors for finger bend detection  
