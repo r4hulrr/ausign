@@ -1,4 +1,0 @@
-Thumb	Index	Middle	Ring	Little	Condition	Sign	Audio_File
-1	0	1	1	1	ax > 800	1	python/one.wav
-1	0	0	1	1	300 < ay < 700 and ax > 500	2	python/two.wav
-1	0	0	0	1	heartbeat < 60	3	python/three.wav

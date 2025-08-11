@@ -3,9 +3,9 @@ from pydub import AudioSegment
 import os
 
 # Config
-text = "is Enzo"
+text = "Enzo"
 volume_boost_db = 10
-output_dir = "code/data"
+output_dir = "firmware/src/data"
 raw_filename = "Enzo.raw"
 raw_path = os.path.join(output_dir, raw_filename)
 

@@ -5,7 +5,7 @@ import os
 # Config
 text = "Name"
 volume_boost_db = 10
-output_dir = "sounds/"
+output_dir = "gui/sounds/"
 wav_filename = "name.wav"
 wav_path = os.path.join(output_dir, wav_filename)
 

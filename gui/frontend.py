@@ -137,11 +137,11 @@ async def main():
                 if candidate_count == 1 and detected_sign != last_detected_sign:
                     # Combo: "This" -> "My"
                     if previous_sign == "This" and detected_sign == "My":
-                        play_sound("sounds/is.wav")
+                        play_sound("gui/sounds/is.wav")
                         delayed_play(sound_file, delay=0.3)
                     # Combo: "My" -> "Name"
                     elif previous_sign == "My" and detected_sign == "Name":
-                        play_sound("sounds/is.wav")
+                        play_sound("gui/sounds/is.wav")
                         delayed_play(sound_file, delay=0.3)
                     # Normal sign
                     elif sound_file:
