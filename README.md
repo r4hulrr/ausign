@@ -35,7 +35,6 @@ Unlike existing ASL-centric devices, AUSIGN is **purpose-built for Auslan**, inc
 - **Recognition algorithm:** Condition-matching engine using flex, IMU, and BPM thresholds from CSV definitions.  
 - **GUI:** Python-based BLE interface for displaying recognised signs, sensor status, and audio playback.  
 
----
 
 ## Repository Structure
 ```
