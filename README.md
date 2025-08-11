@@ -12,10 +12,9 @@ Unlike existing ASL-centric devices, AUSIGN is **purpose-built for Auslan**, inc
 ##  Key Features
 - **Auslan-specific design** – recognises grammar and gestures unique to Auslan.
 - **Context-aware translation** – heartbeat sensing to infer emotional tone.
-- **Low-latency output** – spoken translation in <1 second for natural conversations.
+- **Low-latency output** – low latency translation for natural conversations.
 - **Comfort & portability** – under 150 g, designed for all-day wear.
-- **Custom sign mapping** – add personal or region-specific gestures via app.
-- **Cross-platform UI** – BLE-connected Python GUI (future iOS/Android support).
+- **Cross-platform UI** – BLE-connected Python GUI.
 - **Rechargeable & all-day battery life** – ~6 hours continuous operation.
 
 
